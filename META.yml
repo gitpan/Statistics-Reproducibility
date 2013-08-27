@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Statistics-Reproducibility
-version:            0.01
+version:            0.02
 abstract:           Reproducibility measurement between multiple replicate experiments
 author:
     - Jimi Wills <jimi@webu.co.uk>

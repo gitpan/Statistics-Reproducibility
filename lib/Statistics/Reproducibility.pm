@@ -16,11 +16,11 @@ Statistics::Reproducibility - Reproducibility measurement between multiple repli
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 
 =head1 SYNOPSIS
@@ -119,6 +119,8 @@ we'll check it is and croak if not...
 but can contain "empty" cells (empty string), which represent missing values
 in the data.
 
+returns the object for chaining.
+
 =cut
 
 sub data {
@@ -130,7 +132,7 @@ sub data {
         croak "columns different lengths!"
         unless @{$columns[$_]} == $o->{n};
     }
-    return ($o->{k},$o->{n});
+    return $o;
 }
 
 =head2 run
@@ -152,6 +154,20 @@ It returns the last object. So you could do:
         ->data($mydata)
         ->run()
         ->printableTable($depth);
+
+=cut
+
+sub run {
+    my $r = shift;
+    $r->data([qw/1 2 3 4 5 6 7 8/],[qw/0 1 2 3 4 5 6 7/],[qw/2.1 3.2 4.3 5.4 6.5 7.6 8.7 9.8/]);
+    my $m = $r->subtractMedian();
+    $m->middlemostColumn();
+    my $d = $m->deDiagonalize();
+    $d -> regression();
+    my $e = $d->rotateToRegressionLine();
+    $e->variances();
+    return $e;
+}
 
 =head2 subtractMedian
 
@@ -194,9 +210,9 @@ sub middlemostColumn {
     foreach my $i(0..$o->{n}-1){ # each row
         my @row = ();
         foreach my $j(0..$o->{k}-1){
-            if(defined $o->{data}->[$i]->[$j]
-                    && $o->{data}->[$i]->[$j] ne ''){
-                push @row, $o->{data}->[$i]->[$j];
+            if(defined $o->{data}->[$j]->[$i]
+                    && $o->{data}->[$j]->[$i] ne ''){
+                push @row, $o->{data}->[$j]->[$i];
             }
         }
         # who's in the middle?
@@ -462,14 +478,27 @@ to include all objects.
 sub printableTable {
     my ($o,$deep) = @_;
     my @header = (qw/Statistic Value/, map {"Column $_"} (1..$o->{k}));
-    my @statistics = (
-        qw/CompareColumn Columns Rows ErrorVariance SpreadVariance ErrorSD SpreadSD/
-    );
-    my @values = ($o->{comparatorIndex} + 1, map {$o->{$_}} qw/k n vE vS sdE sdS/);
+    
+    my @statistics = ();
+    my @values = ();
+    
+    my @statkeys = qw/comparatorIndex k n vE vS sdE sdS/;
+    my @statnames = qw/CompareColumn Columns Rows ErrorVariance SpreadVariance ErrorSD SpreadSD/;
+    foreach (0..$#statkeys){
+        my $statkey = $statkeys[$_];
+        my $statname = $statnames[$_];
+        if(defined $o->{$statkey} && $o->{$statkey} ne ''){
+            push @statistics, $statname;
+            push @values, $o->{$statkey};
+            if($statkey eq 'comparatorIndex'){
+                $values[$#values] ++; # 1-based!
+            }
+        }
+    }
     
     my @printData = (\@statistics, \@values, @{$o->{data}});
     
-    if(ref $o->{m}){
+    if(ref $o->{m} && @{$o->{m}} ){
         push @header, 'Regression','M','C';
         push @printData, [map {"Column $_"} (1..$o->{k})];
         push @printData, $o->{m}, $o->{c};
