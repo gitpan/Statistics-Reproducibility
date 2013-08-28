@@ -14,6 +14,7 @@ This module helps you through the following items...
 
 CHANGELOG
 
+v0.03	20130828	Prerequisites fixed (I hope)
 v0.02	20130827	Table output bugs fixed :-) Run bug fixed
 v0.01	20130826	First version :-/ known bug with table output \-:
 

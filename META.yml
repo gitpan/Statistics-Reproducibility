@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Statistics-Reproducibility
-version:            0.02
+version:            0.03
 abstract:           Reproducibility measurement between multiple replicate experiments
 author:
     - Jimi Wills <jimi@webu.co.uk>
@@ -11,6 +11,7 @@ configure_requires:
 build_requires:
     Test::More:  0
 requires:
+    Math::Geometry::Multidimensional:  0.01
     perl:                 5.006
     Statistics::Distributions:  1.02
     Statistics::QuickMedian:  0.03
