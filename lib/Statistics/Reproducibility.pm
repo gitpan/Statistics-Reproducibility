@@ -16,11 +16,11 @@ Statistics::Reproducibility - Reproducibility measurement between multiple repli
 
 =head1 VERSION
 
-Version 0.04
+Version 0.05
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 
 =head1 SYNOPSIS
@@ -159,7 +159,7 @@ It returns the last object. So you could do:
 
 sub run {
     my $r = shift;
-    $r->data([qw/1 2 3 4 5 6 7 8/],[qw/0 1 2 3 4 5 6 7/],[qw/2.1 3.2 4.3 5.4 6.5 7.6 8.7 9.8/]);
+#    $r->data([qw/1 2 3 4 5 6 7 8/],[qw/0 1 2 3 4 5 6 7/],[qw/2.1 3.2 4.3 5.4 6.5 7.6 8.7 9.8/]);
     my $m = $r->subtractMedian();
     $m->middlemostColumn();
     my $d = $m->deDiagonalize();
