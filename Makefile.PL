@@ -21,7 +21,6 @@ WriteMakefile(
         'Statistics::Distributions' => 1.02,
         'Statistics::QuickMedian' => 0.03,
         'Statistics::TheilSenEstimator' => 0.04,
-	'Math::Geometry::Multidimensional' => 0.01,
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Statistics-Reproducibility-*' },

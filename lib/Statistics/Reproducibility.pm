@@ -5,7 +5,7 @@ use strict;
 use warnings FATAL => 'all';
 use Carp;
 
-use Math::Geometry::Multidimensional qw/distanceToLineN diagonalComponentsN diagonalDistancesFromOriginN/;
+#use Math::Geometry::Multidimensional qw/distanceToLineN diagonalComponentsN diagonalDistancesFromOriginN/;
 use Statistics::TheilSenEstimator qw/theilsen/;
 use Statistics::QuickMedian qw/qmedian/;
 use Statistics::Distributions;
@@ -16,11 +16,11 @@ Statistics::Reproducibility - Reproducibility measurement between multiple repli
 
 =head1 VERSION
 
-Version 0.08
+Version 0.09
 
 =cut
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 
 =head1 SYNOPSIS
@@ -163,6 +163,7 @@ sub run {
         $r->countObservations();
     $r->regression();
     my $m = $r->subtractMedian();
+        $m->applyMinimumObservations(2);
     $m->middlemostColumn();
     my $d = $m->deDiagonalize();
         $d->applyMinimumObservations(2);
@@ -295,17 +296,33 @@ sub deDiagonalize {
     my $r = $o->derive('deDiagonalize');
     
     my $ic = $o->{comparatorIndex};
+
+    my $a = atan2(1,1);
     
     foreach my $i(0..$o->{k}-1){
         next if $i == $ic;
-        $r->{data}->[$i] = diagonalComponentsN(
-            $o->{data}->[$ic], $o->{data}->[$i]
-        )
+        foreach my $j(0..$o->{n}-1){
+            my $y = $o->{data}->[$i]->[$j] || 0;
+            my $x = $o->{data}->[$ic]->[$j] || 0;
+
+            if($y || $x){
+                my $t = atan2($y,$x) - $a;
+                my $r = sqrt($x**2 + $y**2);
+                ($x,$y) = ($r*cos($t), $r*sin($t));
+            }
+
+            $r->{data}->[$i]->[$j] = $y;
+            $r->{data}->[$ic]->[$j] = $x;
+        }
+
+       # $r->{data}->[$i] = diagonalComponentsN(
+       #     $o->{data}->[$i], $o->{data}->[$ic]
+       # )
     }
     
-    $r->{data}->[$ic] = diagonalDistancesFromOriginN(
-        $o->{k}, $o->{n}, @{$o->{data}}
-    );
+    #$r->{data}->[$ic] = diagonalDistancesFromOriginN(
+    #    $o->{k}, $o->{n}, @{$o->{data}}
+    #);
     return $r;
 }
 
@@ -345,6 +362,7 @@ sub applyMinimumObservations {
             foreach my $i(0..$o->{k}-1){
                 $o->{data}->[$i]->[$j] = '';
             }
+            $o->{d}->[$j] = '' if exists $o->{d};
         }
     }
 }
@@ -387,10 +405,10 @@ sub rotateToRegressionLine {
         unless defined $o->{c};
     
     # use distanceToLineN([0,0,0],...) to get middle point of line for distance :-)
-    my $O = [map {0} (1..$o->{k})]; # the origin
-    my @MC = ($o->{m},$o->{c}); # we'll be using this a lot, maybe
+    #my $O = [map {0} (1..$o->{k})]; # the origin
+    #my @MC = ($o->{m},$o->{c}); # we'll be using this a lot, maybe
     
-    my ($dO,$X) = distanceToLineN($O,@MC); # $X is the "centre" of the line
+    #my ($dO,$X) = distanceToLineN($O,@MC); # $X is the "centre" of the line
     
     ####
     my $r = $o->derive('rotateToRegressionLine');
@@ -402,34 +420,61 @@ sub rotateToRegressionLine {
     foreach my $j(0..$o->{n}-1){
         foreach my $i(0..$o->{k}-1){
             next if $i == $ic;
-            my ($d,$x) = distanceToLineN(
-                [$o->{data}->[$i]->[$j],$o->{data}->[$ic]->[$j]],
-                [$o->{m}->[$i], $o->{m}->[$ic]],
-                [$o->{c}->[$i], $o->{c}->[$ic]]
-            );
-            my $icv = $o->{data}->[$ic]->[$j] || 0;
-            my $iv = $o->{data}->[$i]->[$j] || 0;
-            if($icv < $iv){
-                $d *= -1;
-            }
-            $r->{data}->[$i]->[$j] = $d;
-        }
-        
-        my @coords = map {$o->{data}->[$_]->[$j]} (0..$o->{k}-1);
-        my ($d,$x) = distanceToLineN(
-            [@coords], @MC
-        );
 
-        push @{$r->{d}}, $d; # distance to line
-        
-        my $ss = 0; # sum of squares
-        foreach my $i(0..$o->{k}-1){
-            my $xi = $X->[$i] || 0;
-            my $di = $o->{data}->[$i]->[$j] || 0;
-            $ss += ($xi - $di)**2
+            my $m = $o->{m}->[$i];
+            my $c = $o->{c}->[$i];
+            my $y = $o->{data}->[$i]->[$j] || $c;
+            my $x = $o->{data}->[$ic]->[$j] || 0;
+            $y -= $c;
+            if($y || $x){
+                my $a = atan2($m,1);
+                my $t = atan2($y,$x) - $a;
+                my $r = sqrt($x**2 + $y**2);
+                ($x,$y) = ($r*cos($t), $r*sin($t));
+            }
+
+            $r->{data}->[$i]->[$j] = $y;
+            $r->{data}->[$ic]->[$j] = $x;
+
+            #my ($d,$x) = distanceToLineN(
+            #    [$o->{data}->[$i]->[$j],$o->{data}->[$ic]->[$j]],
+            #    [$o->{m}->[$i], $o->{m}->[$ic]],
+            #    [$o->{c}->[$i], $o->{c}->[$ic]]
+            #);
+            #my $icv = $o->{data}->[$ic]->[$j] || 0;
+            #my $iv = $o->{data}->[$i]->[$j] || 0;
+            #if($icv < $iv){
+            #    $d *= -1;
+            #}
+            #$r->{data}->[$i]->[$j] = $d;
         }
         
-        $r->{data}->[$ic]->[$j] = sqrt($ss); # distance to center of line
+        my $sumOfSquares = 0;
+        my $sumOfValues = 0;
+        $sumOfSquares += $_ foreach map {$_ == $ic ? () : $r->{data}->[$_]->[$j] ** 2} (0..$o->{k}-1);
+        $sumOfValues += $_ foreach map {$_ == $ic ? () : $r->{data}->[$_]->[$j]} (0..$o->{k}-1);
+        my $rootsumsquares = sqrt($sumOfSquares);
+        #my ($d,$x) = distanceToLineN(
+        #    [@coords], @MC
+        #);
+        # give the distance a sign too!
+        #my $ss = 0;
+        #foreach my $i(0..$r->{k}-1){
+        #    $ss += $r->{data}->[$i]->[$j] * $r->{m}->[$i];
+        #}
+
+        $rootsumsquares *= -1 if $sumOfValues < 0;
+
+        push @{$r->{d}}, $rootsumsquares; # distance to line
+        
+        #my $ss = 0; # sum of squares
+        #foreach my $i(0..$o->{k}-1){
+        #    my $xi = $X->[$i] || 0;
+        #    my $di = $o->{data}->[$i]->[$j] || 0;
+        #    $ss += ($xi - $di)**2
+        #}
+        #
+        #$r->{data}->[$ic]->[$j] = sqrt($ss); # distance to center of line
         
     }
     
